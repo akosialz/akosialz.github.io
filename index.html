@@ -26,26 +26,31 @@
     </style>
 
     <script type="text/javascript">
+		
+        var currentPosition;
+		
         var map;
         var searchbox;
-        var currentPosition;
+		var ddl;
+		var ddlChart;
         var searchCoord;
         var toggleRestaurant;
-        var clearMarkers;
         var drawingManager;
-        var selectedShape;
+		
+        var selectedShape;	// current selected shape
         var directionsDisplay;
-        var nearbyMarkers = [];
-        var all_overlays = [];
-        var containedMarkers = [];
+		
+        var nearbyMarkers = [];	// all nearby markers based from nearby place search
+        var all_overlays = [];	// all polygons
+        var containedMarkers = [];	// all markers in the circle
+		
         var discoveryUrl = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
-		var authResultCopy = false;
+		var chartHead = ['Company', '2014', '2015', '2016'];
 		
 		// containers
-		var fetchedStatistics = [];
-		var storeStatistics = [];
-		var finalStatistics = [];
-		var selectedStatistics = [];
+		var fetchedStatistics = [];	// from reading sheets
+		var storeStatistics = [];	// from nearby place search
+		var finalStatistics = [];	// clean array gathered from reading and from nearby palce search
 
         // Your Client ID can be retrieved from your project in the Google
         // Developer Console, https://console.developers.google.com
@@ -65,13 +70,11 @@
             var authorizeDiv = document.getElementById('authorize-div');
             if (authResult && !authResult.error) {
                 // Hide auth UI, then load client library.
-				authResultCopy = true;
                 authorizeDiv.style.display = 'none';
                 loadSheetsApi(0);
             } else {
                 // Show auth UI, allowing the user to initiate authorization by
                 // clicking authorize button.
-				authResultCopy = false;
                 authorizeDiv.style.display = 'inline';
             }
         }
@@ -92,7 +95,7 @@
         function listAllContents() {
             gapi.client.sheets.spreadsheets.values.get({
                 spreadsheetId: '1ANh8ZoIjfqypndns_oI3xK1j1Pf0Nc0dLMLgJ2IxZcU',
-                range: 'Restaurants!A2:G',
+                range: 'Restaurants!A2:N',
             }).then(function(response) {
 				fetchedStatistics = [];
 				if (response.result.values != null &&  response.result.values.length > 0)  {
@@ -108,7 +111,7 @@
         function storeContents() {
             gapi.client.sheets.spreadsheets.values.append({
                 spreadsheetId: '1ANh8ZoIjfqypndns_oI3xK1j1Pf0Nc0dLMLgJ2IxZcU',
-                range: 'Restaurants!A2:G',
+                range: 'Restaurants!A2:N',
 				valueInputOption:'RAW',
                 values: finalStatistics
             }).then(function(response) {
@@ -135,7 +138,8 @@
             }
 
             map = new google.maps.Map(document.getElementById('map'), mapOptions);
-
+			ddlChart = document.getElementById('charting');
+			
             directionsDisplay = new google.maps.DirectionsRenderer({
                 map: map
             });
@@ -144,8 +148,8 @@
             insertDrawingManager();
             insertSearchbox();
             insertToggleRestaurants();
+			insertDdl();
             addFunctionSearchbox();
-            showRestaurants();
             drawingManagerEvent();
             customFunction();
         }
@@ -213,8 +217,8 @@
 			
             containedMarkers.length = [];
             for (var x = 0; x < nearbyMarkers.length; x++) {
-                var m = nearbyMarkers[x];
-                if (shape.getBounds().contains(new google.maps.LatLng(m[1], m[2]))) {
+                var m = nearbyMarkers[x].lss;
+                if (shape.getBounds().contains(new google.maps.LatLng(m[2], m[3]))) {
 					aa += m[4];
 					bb += m[5]
 					cc += m[6];
@@ -261,14 +265,28 @@
 			
 			var localStoreStatistics = [];
 			localStoreStatistics.push(place.id);
+			localStoreStatistics.push(place.name);
 			localStoreStatistics.push(place.geometry.location.lat());	// location
 			localStoreStatistics.push(place.geometry.location.lng());	// location
 			localStoreStatistics.push(getRandomInt(1, 6));	// classification
 			localStoreStatistics.push(getRandomInt(100, 20000));	// revenues
 			localStoreStatistics.push(getRandomInt(100, 20000));	// patrons/day
 			localStoreStatistics.push(getRandomInt(100, 20000));	// earnings/day
+			
+			localStoreStatistics.push(getRandomInt(100, 20000));	// revenues (2015)
+			localStoreStatistics.push(getRandomInt(100, 20000));	// patrons/day (2015)
+			localStoreStatistics.push(getRandomInt(100, 20000));	// earnings/day (2015)
+			
+			localStoreStatistics.push(getRandomInt(100, 20000));	// revenues (2014)
+			localStoreStatistics.push(getRandomInt(100, 20000));	// patrons/day (2014)
+			localStoreStatistics.push(getRandomInt(100, 20000));	// earnings/day (2014)
 			storeStatistics.push(localStoreStatistics);
-            nearbyMarkers.push(localStoreStatistics);
+			
+			var nm = new Object();
+			nm.lss = localStoreStatistics;
+			nm.marker = marker;
+			
+            nearbyMarkers.push(nm);
 			nearbyMarkerEvent(place, marker);
         }
 
@@ -302,7 +320,6 @@
 				var y = finalStatistics[x];
 				if (place.id == y[0]) {
 					z = y;
-					console.log(z);
 					break;
 				}
 			}
@@ -343,8 +360,9 @@
         }
 
 		function showRestaurants() {
-            toggleRestaurant.addEventListener('click', function() {
-				finalStatistics = [];
+			classificationRestaurant.selectedIndex = 0;
+			ddlChart.disabled=false;
+            finalStatistics = [];
 				handleAuthClick();
                 var service = new google.maps.places.PlacesService(map);
                 service.nearbySearch({
@@ -352,7 +370,8 @@
                     radius: 500,
                     type: ['restaurant']
                 }, callback);
-            });
+				
+			document.getElementById("classificationRestaurant").style.display = 'inline';
         }
 		
 		function callback(results, status) {
@@ -372,7 +391,7 @@
             google.maps.event.addListener(marker, 'click', function() {
 				var placeInfo = findPlace(place);
                 var infowindow = new google.maps.InfoWindow();
-				var content = '<div><div>'+place.name+'</div><div>'+identifyType(placeInfo[3])+'</div><div>Revenues:'+placeInfo[4]+'</div><div>Patrons/day:'+placeInfo[5]+'</div><div>Earnings/pay:'+placeInfo[6]+'</div></div>';
+				var content = '<div><div>'+place.name+'</div><div>'+identifyType(placeInfo[3])+'</div><div>Revenues:'+placeInfo[4]+'</div><div>Patrons/day:'+placeInfo[5]+'</div><div>Earnings/day:'+placeInfo[6]+'</div></div>';
                 infowindow.setContent(content);
                 infowindow.open(map, this);
                 searchCoord = this.getPosition();
@@ -446,11 +465,6 @@
             map.controls[google.maps.ControlPosition.TOP_RIGHT].push(document.getElementById('toggleNearbyRestaurant'));
         }
 
-        function insertClearMarkers() {
-            clearMarkers = document.getElementById('clearMarkers');
-            map.controls[google.maps.ControlPosition.TOP_RIGHT].push(document.getElementById('clearMarkers'));
-        }
-		
 		function insertDrawingManager() {
             drawingManager = new google.maps.drawing.DrawingManager({
                 drawingMode: null,
@@ -463,8 +477,151 @@
 
             drawingManager.setMap(map);
         }
+		
+		function insertDdl() {
+            ddl = document.getElementById('classificationRestaurant');
+            map.controls[google.maps.ControlPosition.TOP_RIGHT].push(document.getElementById('classificationRestaurant'));
+        }
+		
 		function onChangeDDL() {
-			alert('1');
+			for(var i=0;i<nearbyMarkers.length;i++) {
+				var marker = nearbyMarkers[i].marker;
+				var data = nearbyMarkers[i].lss;
+				if (ddl.options[ddl.selectedIndex].value == "0") {
+					marker.setMap(map);
+				} else {
+					if (data[4] != parseInt(ddl.options[ddl.selectedIndex].value)) marker.setMap(null);
+					else marker.setMap(map);
+				}
+				
+			}
+		}
+		
+		function onChangeChart() {
+			switch(ddlChart.options[ddlChart.selectedIndex].value) {
+				case "1": drawAreaChart(); break;
+				case "2": drawLineChart(); break;
+				case "3": drawPieChart(); break;
+				case "4": drawComboChart(); break;
+			}
+		}
+		
+		function drawComboChart() {
+			var arrToChart = [];
+			
+			for(var i=0; i< nearbyMarkers.length; i++) {
+				var arrData = [];
+				var data = nearbyMarkers[i].lss;
+				arrData.push(parseInt(data[6]));
+				arrData.push(parseInt(data[9]));
+				arrData.push(parseInt(data[12]));
+				arrData.unshift(data[1]);
+				arrToChart.push(arrData);
+			}
+			
+			arrToChart.unshift(chartHead);
+			var data = google.visualization.arrayToDataTable(arrToChart);
+
+			var options = {
+			  title : "Restaurant's Patrons/day",
+			  vAxis: {title: '1'},
+			  hAxis: {title: '2'},
+			  seriesType: 'bars',
+			  series: {5: {type: 'line'}}
+			};
+
+			var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));
+			chart.draw(data, options);
+		}
+		
+		
+		function drawPieChart() {
+			var arrToChart = [];
+			var types1 = ['Ethnic', 0];
+			var types2 = ['Fast Food', 0];
+			var types3 = ['Fast Casual', 0];
+			var types4 = ['Casual Dining', 0];
+			var types5 = ['Fine Dining', 0];
+			
+			var pieHeader = ['Type', 'No. of restaurant type'];
+			
+			for(var i=0; i< nearbyMarkers.length; i++) {
+				var data = nearbyMarkers[i].lss;
+				switch(parseInt(data[4])) {
+					case 1: types1[1]++; break;
+					case 2: types2[1]++; break;
+					case 3: types3[1]++; break;
+					case 4: types4[1]++; break;
+					case 5: types5[1]++; break;
+				}
+			}
+			
+			arrToChart.push(pieHeader);
+			arrToChart.push(types1);
+			arrToChart.push(types2);
+			arrToChart.push(types3);
+			arrToChart.push(types4);
+			arrToChart.push(types5);
+			var data = google.visualization.arrayToDataTable(arrToChart);
+
+			var options = {
+			  title: 'Types of nearby restaurants'
+			};
+
+			var chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+			chart.draw(data, options);
+		}
+		
+		function drawLineChart() {
+			var arrToChart = [];
+			
+			for(var i=0; i< nearbyMarkers.length; i++) {
+				var arrData = [];
+				var data = nearbyMarkers[i].lss;
+				arrData.push(parseInt(data[5]));
+				arrData.push(parseInt(data[8]));
+				arrData.push(parseInt(data[11]));
+				arrData.unshift(data[1]);
+				arrToChart.push(arrData);
+			}
+			
+			arrToChart.unshift(chartHead);
+			var data = google.visualization.arrayToDataTable(arrToChart);
+
+			var options = {
+			  title: "Restaurant's revenues",
+			  curveType: 'function',
+			  legend: { position: 'bottom' }
+			};
+
+			var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+			chart.draw(data, options);
+		}
+		
+		function drawAreaChart() {
+			var arrToChart = [];
+			
+			for(var i=0; i< nearbyMarkers.length; i++) {
+				var arrData = [];
+				var data = nearbyMarkers[i].lss;
+				arrData.push(parseInt(data[7]));
+				arrData.push(parseInt(data[10]));
+				arrData.push(parseInt(data[13]));
+				arrData.unshift(data[1]);
+				arrToChart.push(arrData);
+			}
+			
+			arrToChart.unshift(chartHead);
+			var data = google.visualization.arrayToDataTable(arrToChart);
+
+			var options = {
+			  title: "Restaurant's average earnings",
+			  hAxis: {title: 'aw',  titleTextStyle: {color: '#333'}},
+			  vAxis: {minValue: 0}
+			};
+
+			var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+			chart.draw(data, options);
 		}
 
 
@@ -478,18 +635,42 @@
     <input id="searchbox" class="controls" type="text" placeholder="Search Box" />
     <div id="warnings-panel"></div>
     <div id="panelToggle">
-        <button type="button" id="toggleNearbyRestaurant">Show Restaurants</button>
+        <button type="button" id="toggleNearbyRestaurant" onClick="showRestaurants()">Show Restaurants</button>
+		<select id="classificationRestaurant" onChange="onChangeDDL()" style="display: none;">
+		  <option value="0">All
+		  <option value="1">Ethnic
+		  <option value="2">Fast Food
+		  <option value="3">Fast Casual
+		  <option value="4">Casual Dining
+		  <option value="5">Fine Dining
+		</select>
     </div>
 
     <div id="authorize-div" style="display: none">
         <span>Authorize access to Google Sheets API</span>
-        <!--Button for the user to click to initiate auth sequence -->
-        <!-- <button id="authorize-button" onclick="handleAuthClick(event)"> -->
-        <!-- Authorize -->
-      <!-- </button> -->
     </div>
+	
+	<div style="width: 100%; text-align: center;">
+		<div style="margin: 0 auto; width: 50%; display: inline-block;">
+			<select id="charting" onChange="onChangeChart()" disabled=true>
+			  <option value="0">None
+			  <option value="1">Average earnings (Area chart)
+			  <option value="2">Reveneus (Line chart)
+			  <option value="3">Type (Pie chart)
+			  <option value="4">Patrons/day (Column chart)
+			</select>
+		</div>
+		
+		<div style="margin: 0 auto; width: 50%; display: inline-block;">
+			<div id='chart_div' style='width: 900px; height: 500px;'></div>
+		</div>
+	</div>
+	
     <pre id="output"></pre>
     <script src="https://maps.googleapis.com/maps/api/js?&libraries=drawing,geometry,visualization,places&key=AIzaSyAFVvjEQ1yadVbzSLf4sOwG0Kg_wdqL1w0&callback=initMap" async defer></script>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+	<script type="text/javascript">google.load('visualization', '1.0', {'packages':['corechart']});</script>
 </body>
 
 </html>
