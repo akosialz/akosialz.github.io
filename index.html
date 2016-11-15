@@ -391,7 +391,7 @@
             google.maps.event.addListener(marker, 'click', function() {
 				var placeInfo = findPlace(place);
                 var infowindow = new google.maps.InfoWindow();
-				var content = '<div><div>'+place.name+'</div><div>'+identifyType(placeInfo[3])+'</div><div>Revenues:'+placeInfo[4]+'</div><div>Patrons/day:'+placeInfo[5]+'</div><div>Earnings/day:'+placeInfo[6]+'</div></div>';
+				var content = '<div><div>'+place.name+'</div><div>'+identifyType(placeInfo[4])+'</div><div>Revenues:'+placeInfo[5]+'</div><div>Patrons/day:'+placeInfo[6]+'</div><div>Earnings/day:'+placeInfo[7]+'</div></div>';
                 infowindow.setContent(content);
                 infowindow.open(map, this);
                 searchCoord = this.getPosition();
