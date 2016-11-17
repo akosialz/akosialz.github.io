@@ -3,14 +3,52 @@
 		// ddlChart.disabled=false;
 		// finalStatistics = [];
 			// handleAuthClick();
-			var service = new google.maps.places.PlacesService(map);
-			service.nearbySearch({
-				location: new google.maps.LatLng(current.getPosition().lat(), current.getPosition().lng()),
-				radius: 500,
-				type: ['restaurant']
-			}, callback);
+
+			if (hasPage = true) {
+				var localLat;
+				var localLng;
+
+				if (current == null) {
+					localLat = DEFAULT_FROM_LAT;
+					localLng = DEFAULT_FROM_LNG;
+				} else {
+					localLat = current.getPosition().lat();
+					localLng = current.getPosition().lng();
+				}
+				var service = new google.maps.places.PlacesService(map);
+				service.nearbySearch({
+					location: new google.maps.LatLng(localLat, localLng),
+					radius: 500,
+					type: ['restaurant']
+				}, callback);
+			}
 
 		// document.getElementById("classificationRestaurant").style.display = 'inline';
+	}
+
+	function handleCheckbox(chkbox) {
+
+		if (chkbox.id == "checkbox1") {
+			var c1 = document.getElementById("checkbox1");
+			if (c1.checked){
+				for(var j = 1; j < 6; j++) document.getElementById("checkbox" + (j + 1)).checked = true;
+			} else {
+				for(var j = 1; j < 6; j++) document.getElementById("checkbox" + (j + 1)).checked = false;
+			}
+		}
+
+		for(var i = 0; i < all_markers.length; i++) {
+			var am = all_markers[i];
+			if (document.getElementById("checkbox2").checked && am.classification == 2) am.setVisible(true);
+			else if (document.getElementById("checkbox3").checked && am.classification == 3) am.setVisible(true);
+			else if (document.getElementById("checkbox4").checked && am.classification == 4) am.setVisible(true);
+			else if (document.getElementById("checkbox5").checked && am.classification == 5) am.setVisible(true);
+			else if (document.getElementById("checkbox6").checked && am.classification == 6) am.setVisible(true);
+			else am.setVisible(false);
+
+			all_markers[i] = am;
+		}
+
 	}
 
 	function callback(results, status, pagination) {
@@ -137,17 +175,20 @@
 			checkAuthWrite();
 
 			if (pagination.hasNextPage) {
-				document.getElementById("showBtn").disabled = false;
-				document.getElementById("showBtn").removeEventListener("onClick", function () {
-					console.log(pagination + " a");
-					var showBtn = document.getElementById("showBtn");
-					showBtn.addEventListener("onClick", function() {
-							console.log(pagination);
-							showBtn.disabled = true;
-							pagination.nextPage();
-					});
-				});
-      }
+				// document.getElementById("showBtn").disabled = false;
+				// document.getElementById("showBtn").removeEventListener("onClick", function () {
+				// 	console.log(pagination + " a");
+				// 	var showBtn = document.getElementById("showBtn");
+				// 	showBtn.addEventListener("onClick", function() {
+				// 			console.log(pagination);
+				// 			showBtn.disabled = true;
+				// 			pagination.nextPage();
+				// 	});
+				// });
+				pagination.nextPage();
+      } else {
+				hasPage = false;
+			}
 
 			// cleanStoreArray();
 		}
@@ -180,26 +221,27 @@
 						var patronsDay4 = JSON.stringify(marker.patronsDay4);
 						var earningsDay4 = JSON.stringify(marker.earningsDay4);
 
-						var content = '<div style="background-color: red"><h4>'+
+						var content = '<div style="width:150px;"><h4>'+
 							place.name+'</h4><p>'+
 							cRestaurant+'</p><p>'+
 							place.formatted_address+'</p><p>'+
-							place.formatted_phone_number+'</p><p>'+
-							place.url + " fealrone" +'</p><div class="panel-body"><div style="float: left; margin: 0 auto;">'+
+							place.formatted_phone_number+'</p>'+
+							'<div class="panel-body"><div style="float: left; text-align: center; display: inline-block">'+
 							'<button id="chartBtn" type="button" onClick="showChart('+
 							revenues+','+patronsDay+','+earningsDay+
 							','+revenues4+','+patronsDay4+','+earningsDay4+
 							','+revenues5+','+patronsDay5+','+earningsDay5+')"'+
 							'class="btn btn-info" data-toggle="modal" data-target="#myModal" data-delay="{"show":1000}" '+
 							'data-container="body" data-html="true" title="Show chart" data-placement="bottom"> '+
-			        '<i class="material-icons md-48">show_chart</i></button> '+
-
-							'</div><div style="float: left; margin: 0 auto;">'+
-
-							'<button id="askDirectionBtn" onClick="askDirection()" type="button" '+
-							'class="btn btn-info" data-toggle="tooltip" data-delay="{"show":1000}" '+
-							'data-container="body" data-html="true" title="Ask directions" data-placement="bottom"> '+
-			        '<i class="material-icons md-48">directions_run</i></button> '+
+			        '<i class="material-icons md-48">show_chart</i></button> '
+							// +
+							//
+							// '</div><div style="float: left; margin: 0 auto;">'+
+							//
+							// '<button id="askDirectionBtn" onClick="askDirection()" type="button" '+
+							// 'class="btn btn-info" data-toggle="tooltip" data-delay="{"show":1000}" '+
+							// 'data-container="body" data-html="true" title="Ask directions" data-placement="bottom"> '+
+			        // '<i class="material-icons md-48">directions_run</i></button> '+
 
 							+'</div></div>';
 						infowindow.setContent(content);
@@ -309,7 +351,18 @@
 
 	function deleteOverlays() {
 		directionsDisplay.setMap(null);
-		for(var i=0;i<all_markers.length;i++) all_markers[i].marker.setMap(null);
+		for(var i=0;i<all_markers.length;i++) all_markers[i].setMap(null);
+
+		if (current != null) {
+			current.setMap(null);
+			current = null;
+		}
+
+		if (search_marker != null) {
+			search_marker.setMap(null);
+			search_marker = null;
+		}
+
 	}
 
 //----------------------------------------------------------------------------------------------------------------------------

@@ -29,7 +29,7 @@
 				drawingControl: true,
 				drawingControlOptions: {
 					position: google.maps.ControlPosition.LEFT_TOP,
-					drawingModes: ['circle', 'polygon', 'polyline', 'rectangle']
+					drawingModes: ['circle']
 				}
 			});
 

@@ -29,7 +29,7 @@
 		gapi.auth.authorize({
 				client_id: CLIENT_ID,
 				scope: SCOPES,
-				immediate: false
+				immediate: true
 			}, handleAuthResultWrite);
 	}
 

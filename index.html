@@ -13,7 +13,9 @@
   	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="css/introjs.css" rel="stylesheet">
 
+    <script type="text/javascript" src="js/intro.js"></script>
     <script src="js/google_map_chart.js"></script>
     <script src="js/google_map_events.js"></script>
     <script src="js/google_map_init.js"></script>
@@ -67,6 +69,8 @@
       var notFirstSearchRestaurant;
 
       var infowindow;
+
+      var hasPage;
 //----------------------------------------------------------------------------------------------------------------------------
   		var ddl;
       var searchCoord;
@@ -106,6 +110,7 @@
 
         getCoordinateFlag = false;
         notFirstSearchRestaurant = false;
+        hasPage = true;
 
         inputId = '';
         startDirection = 0;
@@ -130,6 +135,7 @@
         addFunctionSearchbox();
         customFunction();
 
+        javascript:introJs().start();
       });
 
     	function initMap() {
@@ -138,7 +144,7 @@
     			center: latlng,
     			zoom: 16,
     			scrollwheel: true,
-    			mapTypeId: google.maps.MapTypeId.ROADMAP,
+    			mapTypeId: google.maps.MapTypeId.HYBRID,
     			draggable: true
     		}
 
@@ -286,7 +292,7 @@
 
     <div id="map"></div>
     <div id="contentGroupData" style="margin: 9px 9px 9px 9px; height: 6%; width: auto" class="panel panel-default">
-      <div class="panel-body">
+      <div class="panel-body" data-step="3" data-intro="This will show you the average statistics based from the captured markers using your drawing manager.">
         <div style="float: left; margin-left: 10px"><label>No. of selected Restaurants:</label><label id="set1"></label></div>
         <div style="float: left; margin-left: 10px"><label>Avg. Revenues:</label><label id="set2"></label></div>
         <div style="float: left; margin-left: 10px"><label>Avg. Patrons:</label><label id="set3"></label></div>
@@ -294,7 +300,7 @@
       </div>
     </div>
 
-    <div id="contentGroupTools" style="margin: 9px 9px 9px 9px; display:block; overflow:auto; width: 400px" class="panel panel-default">
+    <div id="contentGroupTools" style="margin: 9px 9px 9px 9px; display:block; overflow:auto; width: 455px" class="panel panel-default">
 
       <div id="childPanelBody" class="panel-body" style="height: auto;">
         <div id="searchDiv">
@@ -314,50 +320,72 @@
         </div>
         <div id="classificationDiv">
           <div class="form-group form-group-lg">
-            <input style="width: 100% !important;" class="form-control input-lg" placeholder="Classification" id="classification" type="text">
+            <div style="width: auto;">
+              <label class="btn btn-primary active">
+                <input onclick="handleCheckbox(this);" id="checkbox1" type="checkbox" autocomplete="off" checked> All
+              </label>
+              <label class="btn btn-primary active">
+                <input onclick="handleCheckbox(this);" id="checkbox2" type="checkbox" autocomplete="off" checked> Ethnic
+              </label>
+              <label class="btn btn-primary">
+                <input onclick="handleCheckbox(this);" id="checkbox3" type="checkbox" autocomplete="off" checked> Fast Food
+              </label>
+              <label class="btn btn-primary">
+                <input onclick="handleCheckbox(this);" id="checkbox4" type="checkbox" autocomplete="off" checked> Fast Casual
+              </label>
+              <label class="btn btn-primary">
+                <input onclick="handleCheckbox(this);" id="checkbox5" type="checkbox" autocomplete="off" checked> Casual Dining
+              </label>
+              <label class="btn btn-primary">
+                <input onclick="handleCheckbox(this);" id="checkbox6" type="checkbox" autocomplete="off" checked> Fine Dining
+              </label>
+            </div>
           </div>
           <hr>
         </div>
       </div>
 
       <div class="panel-body">
-        <button id="deleteBtn" onClick="deleteOverlays()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Delete overlays" data-placement="bottom">
+        <button data-step="1" data-intro="This button deletes all kinds of overlays in the map." id="deleteBtn" onClick="deleteOverlays()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Delete overlays" data-placement="bottom">
           <i class="material-icons md-48">delete</i>
         </button>
-        <button id="drawBtn" onClick="insertDrawingManager()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Toggle draw manager" data-placement="bottom">
+        <button data-step="2" data-intro="This button allows you to draw circle. Drawing manager can be found at the upper left of your screen." id="drawBtn" onClick="insertDrawingManager()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Toggle draw manager" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons md-48">create</i>
         </button>
-        <button id="showBtn" onClick="showRestaurants()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show restaurants" data-placement="bottom">
+        <button data-step="4" data-intro="This button allows you to deploy all types of restaurants near you. By default you are located at the Osmena Circle." id="showBtn" onClick="showRestaurants()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show restaurants" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons md-48">restaurant</i>
         </button>
-        <button id="locationBtn" onClick="currentLocation()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show current location" data-placement="bottom">
+        <button data-step="5" data-intro="This button will locate your current location. By clicking this one then click the previous button, it will find its nearest restaurants within your vicinity." id="locationBtn" onClick="currentLocation()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show current location" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons">my_location</i>
         </button>
-        <button id="directionBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show directions" data-placement="bottom">
+        <button data-step="6" data-intro="This button will help you navigate to a specific location. To find a direction from point A to point B, you simply click the text field and afterwards click any geological point in the map. The same thing you should do for your desired destination and afterwhich, it help automatically give you directions from point A to point B." id="directionBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show directions" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons">directions</i>
         </button>
-        <button id="searchBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Search" data-placement="bottom">
+        <button data-step="7" data-intro="This button will help you find a specific place. If you allow yourself to locate your location, it will automatically give direction on how to get there." id="searchBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Search" data-placement="bottom">
             <i style="margin: 0 7 10 3" class="material-icons">search</i>
         </button>
-        <button id="classificationBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Classifier" data-placement="bottom">
+        <button data-step="8" data-intro="This will help you classify the type of restaurants to be displayed in your map." id="classificationBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Classifier" data-placement="bottom">
             <i style="margin: 0 7 10 3" class="material-icons">group_work</i>
+        </button>
+        <button data-step="9" data-intro="If you need help again, click this button again." id="helpBtn" onclick="javascript:introJs().start();" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Classifier" data-placement="bottom">
+            <i style="margin: 0 7 10 3" class="material-icons">help_outline</i>
         </button>
       </div>
     </div>
 
-    <div class="modal fade" id="myModal" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
+    <div class="modal fade bs-example-modal-sm" id="myModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title">Data Analytics</h4>
           </div>
           <div class="modal-body">
-            <div id="chart_div" style="background-color: blue; text-align: center;">
+            <div id="chart_div" style="width: 100%; text-align: center;">
             </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary">Save changes</button>
+            <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
           </div>
         </div><!-- /.modal-content -->
       </div><!-- /.modal-dialog -->
