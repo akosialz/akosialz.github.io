@@ -1,24 +1,64 @@
+
+// add a marker based on your current geological location.
+function currentLocation() {
+
+	if (navigator.geolocation) {
+		if (current == null) {
+			navigator.geolocation.getCurrentPosition(function(position) {
+				var pos = {
+					lat: position.coords.latitude,
+					lng: position.coords.longitude
+				};
+
+				marker = new google.maps.Marker({
+					map: map,
+					icon: 'images/you.png',
+					title: 'You are here!',
+					position: pos,
+					animation: google.maps.Animation.DROP
+				});
+
+				marker.setMap(map);
+				marker.setPosition(pos);
+				map.setCenter(pos);
+
+				current = marker;
+
+			}, function() {
+				handleLocationError(true, null, map.getCenter());
+			});
+
+		} else {
+			current.setMap(null);
+			current = null;
+		}
+	} else {
+		// Browser doesn't support Geolocation
+		handleLocationError(false, null, map.getCenter());
+	}
+}
+
 	function directionService() {
 		var markerArray = [];
 		var directionsService = new google.maps.DirectionsService;
-
-		var stepDisplay = new google.maps.InfoWindow;
+		directionsDisplay.setMap(map);
 		directionsDisplay.setDirections({
 			routes: []
 		});
 
-		calculateAndDisplayRoute(directionsDisplay, directionsService, markerArray, stepDisplay, map);
-
+		calculateAndDisplayRoute(directionsDisplay, directionsService, markerArray, map);
 	}
 
-	function calculateAndDisplayRoute(directionsDisplay, directionsService, markerArray, stepDisplay, map) {
+	function calculateAndDisplayRoute(directionsDisplay, directionsService, markerArray, map) {
 		for (var i = 0; i < markerArray.length; i++) {
 			markerArray[i].setMap(null);
 		}
 
 		directionsService.route({
-			origin: currentPosition,
-			destination: searchCoord,
+			// origin: new google.maps.LatLng(current.getPosition().lat(), current.getPosition().lng()),
+			// destination: searchCoord,
+			origin: startDirection,
+			destination: endDirection,
 			travelMode: 'WALKING'
 		}, function(response, status) {
 			// Route the directions and pass the response to a function to create
@@ -33,31 +73,25 @@
 		});
 	}
 
-	function customFunction() {
-		google.maps.Circle.prototype.contains = function(latLng) {
-			return this.getBounds().contains(latLng) && google.maps.geometry.spherical.computeDistanceBetween(this.getCenter(), latLng) <= this.getRadius();
-		}
-	}
+	function getLocationOnClick(elem) {
 
-	function clearSelection() {
-		if (selectedShape) {
-			selectedShape.setEditable(false);
-			selectedShape = null;
+		if (elem.value == "") {
+			// first click in the map gets the coordinates of it
+			inputId = elem.id;
+			getCoordinateFlag = true;
 		}
 	}
 
 	function setSelection(shape) {
 		populateMarkerInside(shape);
-		clearSelection();
-		selectedShape = shape;
-		shape.setEditable(true);
+		shape.setMap(null);
 	}
 
 	function populateMarkerInside(shape) {
 		var aa = 0;
 		var bb = 0;
 		var cc = 0;
-		
+
 		containedMarkers.length = [];
 		for (var x = 0; x < nearbyMarkers.length; x++) {
 			var m = nearbyMarkers[x].lss;
@@ -68,77 +102,33 @@
 				containedMarkers.push(m);
 			}
 		}
-		
+
+		document.getElementById('set1').value = 0;
+		document.getElementById('set2').value = 0;
+		document.getElementById('set3').value = 0;
+		document.getElementById('set4').value = 0;
 		alert('You have selected ' + containedMarkers.length + ' restaurants having an average revenues of ' + aa + ', average patrons/day of ' + bb + ' and average earnings/day of ' + cc) ;
 	}
 
-	function currentLocation() {
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(function(position) {
-				var pos = {
-					lat: position.coords.latitude,
-					lng: position.coords.longitude
-				};
-				currentPosition = pos;
-				var marker = new google.maps.Marker;
-				marker.setMap(map);
-				marker.setPosition(pos);
-
-				map.setCenter(pos);
-			}, function() {
-				handleLocationError(true, null, map.getCenter());
-			});
-		} else {
-			// Browser doesn't support Geolocation
-			handleLocationError(false, null, map.getCenter());
+	function customFunction() {
+		google.maps.Circle.prototype.contains = function(latLng) {
+			return this.getBounds().contains(latLng) && google.maps.geometry.spherical.computeDistanceBetween(this.getCenter(), latLng) <= this.getRadius();
 		}
 	}
+
+//----------------------------------------------------------------------------------------------------------------------------
+
 
 	function getRandomInt(min, max) {
 		return Math.floor(Math.random() * (max - min + 1)) + min;
 	}
 
-	function createMarker(place) {
-		var marker = new google.maps.Marker({
-			map: map,
-			position: place.geometry.location,
-			icon: 'images/dinning.png',
-			animation: google.maps.Animation.DROP
-		});
-		
-		var localStoreStatistics = [];
-		localStoreStatistics.push(place.id);
-		localStoreStatistics.push(place.name);
-		localStoreStatistics.push(place.geometry.location.lat());	// location
-		localStoreStatistics.push(place.geometry.location.lng());	// location
-		localStoreStatistics.push(getRandomInt(1, 6));	// classification
-		localStoreStatistics.push(getRandomInt(100, 20000));	// revenues
-		localStoreStatistics.push(getRandomInt(100, 20000));	// patrons/day
-		localStoreStatistics.push(getRandomInt(100, 20000));	// earnings/day
-		
-		localStoreStatistics.push(getRandomInt(100, 20000));	// revenues (2015)
-		localStoreStatistics.push(getRandomInt(100, 20000));	// patrons/day (2015)
-		localStoreStatistics.push(getRandomInt(100, 20000));	// earnings/day (2015)
-		
-		localStoreStatistics.push(getRandomInt(100, 20000));	// revenues (2014)
-		localStoreStatistics.push(getRandomInt(100, 20000));	// patrons/day (2014)
-		localStoreStatistics.push(getRandomInt(100, 20000));	// earnings/day (2014)
-		storeStatistics.push(localStoreStatistics);
-		
-		var nm = new Object();
-		nm.lss = localStoreStatistics;
-		nm.marker = marker;
-		
-		nearbyMarkers.push(nm);
-		nearbyMarkerEvent(place, marker);
-	}
-
 	function cleanStoreArray() {
-		
+
 		if (fetchedStatistics.length == 0) {
 			finalStatistics = storeStatistics.slice(0);
 		}
-		
+
 		for(var x = 0; x<fetchedStatistics.length; x++) {
 			var flag = false;
 			var a = fetchedStatistics[0];
@@ -149,12 +139,12 @@
 					break;
 				}
 			}
-			
+
 			if (!flag) {
 				finalStatistics.push(a);
 			}
 		}
-		
+
 	}
 
 	function findPlace(place) {

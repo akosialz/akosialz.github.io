@@ -31,22 +31,48 @@
             margin: 0;
             padding: 0;
         }
+
+        h4#heading { font-size: 36px; font-weight: bold; }
+        h5#subheading {
+            margin-left: 25%;
+            font-style: italic;
+        }
+
     </style>
 
     <script type="text/javascript">
 
-      var currentPosition;
+      var current;
 
       var map;
       var searchbox;
-  		var ddl;
-  		var ddlChart;
-      var searchCoord;
-      var toggleRestaurant;
       var drawingManager;
 
-      var selectedShape;	// current selected shape
+      var all_markers;
+
       var directionsDisplay;
+
+      var searchCoord;
+      var getCoordinateFlag;
+      var inputId;
+
+      // universal variable both for searching and directions
+      var startDirection;
+      var endDirection;
+//----------------------------------------------------------------------------------------------------------------------------
+  		var ddl;
+      var search_marker;
+
+
+      var search_coordinates;
+
+
+      var currentPosition;
+
+  		var ddlChart;
+
+      var selectedShape;	// current selected shape
+
 
       var nearbyMarkers = [];	// all nearby markers based from nearby place search
       var all_overlays = [];	// all polygons
@@ -63,6 +89,9 @@
       var MAP_CENTER_LAT = 10.31111;
       var MAP_CENTER_LNG = 123.89167;
 
+      var DEFAULT_FROM_LAT = 10.309858;
+      var DEFAULT_FROM_LNG = 123.893184;
+
     	function initMap() {
     		var latlng = new google.maps.LatLng(MAP_CENTER_LAT, MAP_CENTER_LNG);
     		var mapOptions = {
@@ -73,15 +102,52 @@
     			draggable: true
     		}
 
+        // initialize variables
+        current = null;
+        drawingManager = null;
+        search_marker = null;
+
+        getCoordinateFlag = false;
+
+        inputId = '';
+        startDirection = 0;
+        endDirection = 0;
+
+        // search_coordinates = new Object();
+        // search_coordinates.from = null;
+        // search_coordinates.to = null;
+
+        all_markers = [];
+
     		// element init
     		map = new google.maps.Map(document.getElementById('map'), mapOptions);
     		ddlChart = document.getElementById('charting');
+        searchbox = new google.maps.places.SearchBox(document.getElementById('searchBox'));
 
         insertContentGroupData();
         insertContentGroupTools();
-    		// directionsDisplay = new google.maps.DirectionsRenderer({
-    		// 	map: map
-    		// });
+        addFunctionSearchbox();
+        drawingManagerEvent();
+        customFunction();
+
+
+        map.addListener('click', function(event) {
+          if (getCoordinateFlag) {
+            document.getElementById(inputId).value = [event.latLng.lat(), event.latLng.lng()].join()
+            getCoordinateFlag = false;
+
+            var tempX = document.getElementById("inputFrom").value;
+            var tempY = document.getElementById("inputTo").value
+            console.log(tempX);
+            if (tempX != "" && tempY!= "") {
+                  startDirection = tempX;
+                  endDirection = tempY;
+                  directionService();
+            }
+          }
+        });
+
+    		directionsDisplay = new google.maps.DirectionsRenderer();
     		//
     		// currentLocation();
     		// insertDrawingManager();
@@ -154,9 +220,13 @@
           }
 
           document.getElementById("searchBox").value = "";
+          document.getElementById("inputFrom").value = "";
+          document.getElementById("inputTo").value = "";
           document.getElementById("directionsDiv").style.display = "none";
-          document.getElementById("searchDiv").style.display = "inline";
-          document.getElementById("classificationDiv").style.display = "none";
+          document.getElementById("searchDiv").style.display = "none";
+          document.getElementById("classificationDiv").style.display = "inline";
+          isToggledClassificationBtn = !isToggledClassificationBtn;
+          runEffect();
         });
 
         $( "#childPanelBody" ).hide();
@@ -203,10 +273,10 @@
     <div id="map"></div>
     <div id="contentGroupData" style="margin: 9px 9px 9px 9px; height: 6%; width: 50%" class="panel panel-default">
       <div class="panel-body">
-        <div style="float: left; padding-left:: 110px"><label>Number of selected Restaurants:</label> 1</div>
-        <div style="float: left; padding-left:: 10px"><label>Average Revenues:</label> 2</div>
-        <div style="float: left; padding-left:: 10px"><label>Average Patrons:</label> 3</div>
-        <div style="float: left; padding-left:: 10px"><label>Average Earnings:</label>4</div>
+        <div style="float: left; padding-left:: 110px"><label id="set1">Number of selected Restaurants:</label> 1</div>
+        <div style="float: left; padding-left:: 10px"><label id="set2">Average Revenues:</label> 2</div>
+        <div style="float: left; padding-left:: 10px"><label id="set3">Average Patrons:</label> 3</div>
+        <div style="float: left; padding-left:: 10px"><label id="set4">Average Earnings:</label>4</div>
       </div>
     </div>
 
@@ -217,33 +287,36 @@
           <div class="form-group form-group-lg">
             <input style="width: 100% !important;" class="form-control input-lg" placeholder="Search" id="searchBox" type="text">
           </div>
+          <hr>
         </div>
         <div id="directionsDiv">
           <div class="form-group form-group-lg">
-            <input style="width: 100% !important;" class="form-control input-lg" placeholder="From" id="inputFrom" type="text">
+            <input onblur="getLocationOnClick(this)" style="width: 100% !important;" class="form-control input-lg" placeholder="From" id="inputFrom" type="text">
           </div>
           <div class="form-group form-group-lg">
-            <input style="width: 100% !important;" class="form-control input-lg" placeholder="To" id="inputTo" type="text">
+            <input onblur="getLocationOnClick(this)" style="width: 100% !important;" class="form-control input-lg" placeholder="To" id="inputTo" type="text">
           </div>
+          <hr>
         </div>
         <div id="classificationDiv">
           <div class="form-group form-group-lg">
-            <input style="width: 100% !important;" class="form-control input-lg" placeholder="Classification" id="classificationId." type="text">
+            <input style="width: 100% !important;" class="form-control input-lg" placeholder="Classification" id="classification" type="text">
           </div>
+          <hr>
         </div>
       </div>
 
       <div class="panel-body">
-        <button id="deleteBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Delete overlays" data-placement="bottom">
+        <button id="deleteBtn" onClick="deleteOverlays()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Delete overlays" data-placement="bottom">
           <i class="material-icons md-48">delete</i>
         </button>
-        <button id="drawBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Toggle draw manager" data-placement="bottom">
+        <button id="drawBtn" onClick="insertDrawingManager()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Toggle draw manager" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons md-48">create</i>
         </button>
-        <button id="showBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show restaurants" data-placement="bottom">
+        <button id="showBtn" onClick="showRestaurants()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show restaurants" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons md-48">restaurant</i>
         </button>
-        <button id="locationBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show current location" data-placement="bottom">
+        <button id="locationBtn" onClick="currentLocation()" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show current location" data-placement="bottom">
           <i style="margin: 0 7 10 3" class="material-icons">my_location</i>
         </button>
         <button id="directionBtn" type="button" class="btn btn-info" data-toggle="tooltip" data-delay='{"show":1000}' data-container="body" data-html="true" title="Show directions" data-placement="bottom">

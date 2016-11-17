@@ -47,7 +47,7 @@
 			if (response.result.values != null &&  response.result.values.length > 0)  {
 				fetchedStatistics = response.result.values.splice(0);
 			}
-			
+
 			storeContents();
 		}, function(response) {
 			alert('Error: ' + response.result.error.message);
