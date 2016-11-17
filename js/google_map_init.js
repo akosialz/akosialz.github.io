@@ -19,6 +19,7 @@
 
 	function insertDrawingManager() {
 
+
 		if (drawingManager){
 			drawingManager.setMap(null);
 			drawingManager = null;
@@ -32,6 +33,7 @@
 				}
 			});
 
+			drawingManagerEvent();
 			drawingManager.setMap(map);
 
 		}

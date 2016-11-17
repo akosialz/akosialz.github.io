@@ -21,7 +21,6 @@ function currentLocation() {
 				marker.setMap(map);
 				marker.setPosition(pos);
 				map.setCenter(pos);
-
 				current = marker;
 
 			}, function() {
@@ -64,8 +63,6 @@ function currentLocation() {
 			// Route the directions and pass the response to a function to create
 			// markers for each step.
 			if (status === 'OK') {
-				document.getElementById('warnings-panel').innerHTML =
-					'<b>' + response.routes[0].warnings + '</b>';
 				directionsDisplay.setDirections(response);
 			} else {
 				window.alert('Directions request failed due to ' + status);
@@ -92,28 +89,56 @@ function currentLocation() {
 		var bb = 0;
 		var cc = 0;
 
-		containedMarkers.length = [];
-		for (var x = 0; x < nearbyMarkers.length; x++) {
-			var m = nearbyMarkers[x].lss;
-			if (shape.getBounds().contains(new google.maps.LatLng(m[2], m[3]))) {
-				aa += m[4];
-				bb += m[5]
-				cc += m[6];
+		var containedMarkers = [];
+		console.log(all_markers);
+		for (var x = 0; x < all_markers.length; x++) {
+			var m = all_markers[x];
+			if (shape.getBounds().contains(new google.maps.LatLng(m.getPosition().lat(), m.getPosition().lng()))) {
+				aa += m.revenues;
+				bb += m.patronsDay;
+				cc += m.earningsDay;
 				containedMarkers.push(m);
 			}
 		}
 
-		document.getElementById('set1').value = 0;
-		document.getElementById('set2').value = 0;
-		document.getElementById('set3').value = 0;
-		document.getElementById('set4').value = 0;
-		alert('You have selected ' + containedMarkers.length + ' restaurants having an average revenues of ' + aa + ', average patrons/day of ' + bb + ' and average earnings/day of ' + cc) ;
+		document.getElementById('set1').innerHTML = containedMarkers.length;
+		document.getElementById('set2').innerHTML = aa / containedMarkers.length;
+		document.getElementById('set3').innerHTML = bb / containedMarkers.length;
+		document.getElementById('set4').innerHTML = cc / containedMarkers.length;
+		console.log('You have selected ' + containedMarkers.length + ' restaurants having an average revenues of ' + aa + ', average patrons/day of ' + bb + ' and average earnings/day of ' + cc) ;
 	}
 
 	function customFunction() {
 		google.maps.Circle.prototype.contains = function(latLng) {
 			return this.getBounds().contains(latLng) && google.maps.geometry.spherical.computeDistanceBetween(this.getCenter(), latLng) <= this.getRadius();
 		}
+	}
+
+	function identifyType(t) {
+		switch(t) {
+			case 1: return "Ethnic"; break;
+			case 2: return "Fast Food"; break;
+			case 3: return "Fast Casual"; break;
+			case 4: return "Casual Dining"; break;
+			case 5: return "Fine Dining"; break;
+		}
+		return "Ethnic";
+	}
+
+	function identifyTypeIcon(t) {
+		switch(t) {
+			case 1: return "images/ethnic.png"; break;
+			case 2: return "images/fastfood.png"; break;
+			case 3: return "images/fastcasual.png"; break;
+			case 4: return "images/casualdining.png"; break;
+			case 5: return "images/finedining.png"; break;
+		}
+		return "images/ethnic.png";
+	}
+
+	function showChart(r,pd,ed,r4,pd4,ed4,r5,pd5,ed5) {
+		drawLineChart(r,pd,ed,r4,pd4,ed4,r5,pd5,ed5);
+
 	}
 
 //----------------------------------------------------------------------------------------------------------------------------
@@ -157,15 +182,4 @@ function currentLocation() {
 			}
 		}
 		return z;
-	}
-
-	function identifyType(t) {
-		switch(t) {
-			case 1: return "Ethnic"; break;
-			case 2: return "Fast Food"; break;
-			case 3: return "Fast Casual"; break;
-			case 4: return "Casual Dining"; break;
-			case 5: return "Fine Dining"; break;
-		}
-		return "Ethnic";
 	}
